@@ -31,13 +31,13 @@ Servo servo1;
 int intDelay;      //Integration Period = (intDelay + 535 ) microseconds.
 int Value;         //pixel intensity value.
 int maxIndex;
-int pixels[128] = {};
+int pixels[PIXELS] = {};
 int inputPixel;
 
-int Kp = 1, Ki = 1, Kd = 1; // Need to test and modify
+int Kp =2, Ki = 1, Kd = 2; // Need to test and modify
 int Tp = 1500; // default position for servo motor
 int integral = 0, derivative = 0, error = 0, lastError = 0;
-int Turn = 0;
+int Turn = 0  ;
 
 void setup(){
   pinMode(CLK, OUTPUT);
@@ -53,15 +53,9 @@ void setup(){
 
 
 void loop(){
-  intDelay=1+analogRead(INTVAL)*10;  //read integration time from potentiometer.
+  intDelay=1+analogRead(INTVAL)*7;  //read integration time from potentiometer.
   //Serial.print(">");                //Mark the start of a new frame
-  //Serial.println(intDelay + 535);   //Send Integration Period in microseconds.
-//  delay(8);     // used with 9600 bauds
-  delay(2);     // used with 115200 bauds
-//  servo1.write(1500);
-//  delay(800);
-//  servo1.write(2200);
-//  delay(800);
+  delay(2);                         // used with 115200 bauds
   readPixel(0);                     //the first reading will be discarded.
   delayMicroseconds(intDelay);
 
@@ -72,19 +66,31 @@ void loop(){
   }
 
   maxIndex = findMax();
-  error = maxIndex - PIXELS / 2;
+  error = PIXELS/2 - maxIndex;
   integral += error;
   derivative = error - lastError;
   Turn = Kp * error + Ki * integral + Kd * derivative;
-//  Turn *= 10;   // Scale turn val based on servo motor input;
+  //Turn = Turn/10;   // Scale turn val based on servo motor input;
+  if(abs(derivative) < 3){
+    Turn = 0;  
+    integral = 0;  
+  }
   Tp += Turn;
   lastError = error;
-//  if(){
-//  
-//  }
-  Serial.println(Turn);
+  if(Tp > 2200){
+    Tp = 2200;
+    Turn = 0;
+    integral -= 50;
+  }
+  else if(Tp < 850){
+    Tp = 850;
+    Turn = 0;
+    integral += 50;
+  }
+
+  Serial.println(Tp);
   servo1.write(Tp);
-  delay(200);
+  delay(2);
   
 
 }
@@ -119,7 +125,7 @@ int findMax() {
   int sum = 0;
   int maxSum = 0;
   int maxInd = 0;
-  for(int i = 0; i < 128-WindowSize+1; i++) {
+  for(int i = 0; i < PIXELS-WindowSize+1; i++) {
     if(i == 0) {
       for(int j = 0; j < WindowSize; j++) {
         sum += pixels[j];
@@ -137,4 +143,3 @@ int findMax() {
   }
   return maxInd;
 }
-
