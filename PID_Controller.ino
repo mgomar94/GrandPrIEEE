@@ -53,7 +53,9 @@ void setup(){
 
 
 void loop(){
-  intDelay=1+analogRead(INTVAL)*7;  //read integration time from potentiometer.
+
+  /* Scan 128 pixels */
+  intDelay=1+analogRead(INTVAL)*10;  //read integration time from potentiometer.
   //Serial.print(">");                //Mark the start of a new frame
   delay(2);                         // used with 115200 bauds
   readPixel(0);                     //the first reading will be discarded.
@@ -119,7 +121,7 @@ int readPixel(int pixel){
   return Value;
 }
 
-// use a window of 10 to find the index with highest val
+/* use a window of 10 to find the index with highest val */
 int findMax() {
   const int WindowSize = 7;
   int sum = 0;
@@ -143,3 +145,60 @@ int findMax() {
   }
   return maxInd;
 }
+
+
+/* Find the threshold to determine the location of the line 
+ * Created: Yicheng April 20
+ */
+int findThreshold()
+{
+  int sum = 0;
+  int max = 0;
+
+  for(int i = 0; i < PIXELS; i++) 
+  {
+    sum += sum + pixels[i];
+    if(pixels[i] > max) 
+    {
+      max = pixels[i];
+    }
+  }
+
+  int average = sum / PIXELS;
+
+  // Adaptive threshold -- middle point max and average
+  // May need to modify
+  return (max + average) / 2;
+}
+
+
+/* Find the middle of the line 
+ * Created: Yicheng, April 20
+ */
+int findMiddile()
+{
+  int threshold = findThreshold();
+  int end;
+  int count = 0;
+
+  for(int i = 0; i < PIXELS; i++) 
+  {
+    if(pixels[i] > threshold) 
+    {
+      end = i;
+      count++;
+
+      // Don't check the rest pixels if the next value drops significantly
+      // May need to modify
+      if(pixels[i+1] < threshold/2) break;
+    }
+
+    // Not sure what this line is doing
+    //if(pixels[i+1] == 128 || pixels[i+1] == 0) break;
+  }
+
+  return end - count/2;
+} 
+
+
+
