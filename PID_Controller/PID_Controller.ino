@@ -175,6 +175,11 @@ int findThreshold()
 
   int average = sum / PIXELS;
 
+  if((max - average) < (10))
+  {
+    return -1;
+  }
+  
   // Adaptive threshold -- middle point max and average
   // May need to modify
   return (max + average) / 2;
@@ -189,24 +194,38 @@ int findMiddle()
   int threshold = findThreshold();
   int end;
   int count = 0;
+  int currCount = 0;
+  int middle;
+  int start;
 
+  if(threshold < 0){
+    return 63;
+  }
+  
   for(int i = 0; i < PIXELS; i++) 
   {
     if(pixels[i] > threshold) 
     {
-      end = i;
-      count++;
+      if(currCount == 0) start = i;
+      //end = i;
+      currCount++;
 
       // Don't check the rest pixels if the next value drops significantly
       // May need to modify
-      if(pixels[i+1] < threshold/2) break;
+      if(pixels[i+1] < (threshold - (pixels[i]-threshold))) {
+        if(currCount > count) {
+          count = currCount;
+          middle = (i + start) / 2;
+        }
+        currCount = 0;
+      }
     }
 
     // Not sure what this line is doing
     //if(pixels[i+1] == 128 || pixels[i+1] == 0) break;
   }
 
-  return end - count/2;
+  return middle;
 } 
 
 
@@ -224,8 +243,3 @@ int findMiddle()
     return 1500 - 16 * (middle - 63);
   }
  }
-
-
-
-
-
