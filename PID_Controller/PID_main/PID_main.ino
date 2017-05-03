@@ -26,7 +26,10 @@ Linear Array Sensor TSL201R (TAOS) is now AMS:
 #define VOUT    0   //pixel intensity in the analog channel 0
 #define INTVAL  1   //integration time adjust in the analog channel 1.
 #define PIXELS  127
+#define MOTOR_PIN 5
 
+
+/* ----- Variables ----- */
 Servo servo1;
 int intDelay;      //Integration Period = (intDelay + 535 ) microseconds.
 int Value;         //pixel intensity value.
@@ -38,6 +41,29 @@ int Kp =0.65, Ki = 1, Kd = 0.5; // Need to test and modify
 int Tp = 1500; // default position for servo motor
 int integral = 0, derivative = 0, error = 0, lastError = 0;
 int Turn = 0  ;
+
+
+
+//Motor Variable
+
+
+int MAX_SPEED = 50;
+int MED_FAST_SPEED = 45;
+int MED_MED_SPEED = 40;
+int MED_SLOW_SPEED = 35;
+int SLOW_SPEED = 30;
+
+int R_SHARP_ANGLE = 102;    // line center ranged from 10 pixels to the right
+int R_MED_SHARP_ANGLE = 92;
+int R_MED_MED_SHARP_ANGLE = 80;
+int R_MED_SMOOTH_ANGLE = 70;
+int L_SHARP_ANGLE = 22;    // line center ranged from 10 pixels to the left
+int L_MED_SHARP_ANGLE = 32;
+int L_MED_MED_SHARP_ANGLE = 44;
+int L_MED_SMOOTH_ANGLE = 54;
+
+
+
 
 void setup(){
   pinMode(CLK, OUTPUT);
@@ -100,9 +126,42 @@ void loop(){
   //Serial.println(angle);
   servo1.write(angle);
 
-  delay(2);
 
+  //Motor Speeds
+  if(angle > R_SHARP_ANGLE || L_SHARP_ANGLE > angle) 
+  {
+    //Set the duty cycle of the motor to low speed
+    int motorPower  = motorPWM(SLOW_SPEED);     //Currently 20% motor
+    analogWrite(MOTOR_PIN, motorPower);
+  }
   
+  else if(angle > R_MED_SHARP_ANGLE || L_MED_SHARP_ANGLE > angle)
+  {
+    int motorPower = motorPWM(MED_SLOW_SPEED);
+    analogWrite(MOTOR_PIN, motorPower);
+  }
+  
+  else if(angle > R_MED_MED_SHARP_ANGLE || L_MED_MED_SHARP_ANGLE > angle)
+  {
+    int motorPower = motorPWM(MED_MED_SPEED);
+    analogWrite(MOTOR_PIN, motorPower);
+  }
+  
+  else if(angle > R_MED_SMOOTH_ANGLE || L_MED_SMOOTH_ANGLE > angle) 
+  {
+    //Set the duty cycle of the motor to medium speed
+    int motorPower  = motorPWM(MED_FAST_SPEED);     //Currently 30% motor
+    analogWrite(MOTOR_PIN, motorPower);
+  }
+  
+  else 
+  {
+    //Set the duty cycle of the motor
+    int motorPower  = motorPWM(MAX_SPEED);     //Currently 40% motor
+    analogWrite(MOTOR_PIN, motorPower);
+  }
+    
+  delay(2);
 
 }
 
@@ -280,3 +339,14 @@ int findMiddle()
     return 1500 - 16 * (middle - 63);
   }
  }
+
+
+ /* Calculate the duty cycle for the motor
+ *   Began: APRIL 11, 2015
+ *   Edited: APRIL 11, 2015
+ */
+int motorPWM(int value)
+{
+  int motorDuty = 2.55 * value;       //2.55 * value inputed
+  return motorDuty;
+}
