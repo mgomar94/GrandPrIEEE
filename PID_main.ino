@@ -20,6 +20,13 @@ Linear Array Sensor TSL201R (TAOS) is now AMS:
 -Pixel integration Period is adjustable (potentiometer in analog channel 1).
 
 */
+
+// creates a "virtual" serial port/UART
+// connect BT module TX to D10
+// connect BT module RX to D11
+// connect BT Vcc to 5V, GND to GND
+#include <SoftwareSerial.h>
+SoftwareSerial BT(10, 11); 
 #include <Servo.h>
 #define CLK     2
 #define SI      3
@@ -49,11 +56,11 @@ int MOTOR_PIN = 5;
 //Motor Variable
 
 
-int MAX_SPEED = 50;
-int MED_FAST_SPEED = 45;
-int MED_MED_SPEED = 40;
-int MED_SLOW_SPEED = 35;
-int SLOW_SPEED = 30;
+int MAX_SPEED = 30;
+int MED_FAST_SPEED = 25;
+int MED_MED_SPEED = 20;
+int MED_SLOW_SPEED = 15;
+int SLOW_SPEED = 10;
 
 int R_SHARP_ANGLE = 102;    // line center ranged from 10 pixels to the right
 int R_MED_SHARP_ANGLE = 92;
@@ -68,123 +75,118 @@ int L_MED_SMOOTH_ANGLE = 54;
 
 
 void setup(){
+  pinMode(pinA, OUTPUT);
+  pinMode(MOTOR_PIN, OUTPUT);
+  digitalWrite(pinA, HIGH);
+  
   pinMode(CLK, OUTPUT);
   pinMode(SI, OUTPUT);
   digitalWrite(CLK, LOW);
   digitalWrite(SI, LOW);
-  pinMode(pinA, OUTPUT);
-  pinMode(MOTOR_PIN, OUTPUT);
-  digitalWrite(pinA, HIGH);
+  
   servo1.attach(8);
-  //Serial.begin(9600);
   Serial.begin(115200);
   Serial.flush();
   
+  // set digital pin to control as an output
+  pinMode(4, OUTPUT);
+  // set the data rate for the SoftwareSerial port
+  BT.begin(9600);
+  // Send test message to other device
+  
 }
 
-
+char a;
 
 void loop(){
-
-  /* Scan 128 pixels */
-  intDelay=1+analogRead(INTVAL)*10;  //read integration time from potentiometer.
-  //Serial.print(">");                //Mark the start of a new frame
-  delay(2);                         // used with 115200 bauds
-  readPixel(0);                     //the first reading will be discarded.
-  delayMicroseconds(intDelay);
-  for(int i=0;i<PIXELS;i++){
-    inputPixel = readPixel(i);
-    pixels[i] = inputPixel;
-    delayMicroseconds(intDelay*2);    //Delay added to the integration period.
-  }
-
-  /*
-  maxIndex = findMax();
-  error = PIXELS/2 - maxIndex;
-  integral += error;
-  derivative = error - lastError;
-  Turn = Kp * error + Ki * integral + Kd * derivative;
-  //Turn = Turn/10;   // Scale turn val based on servo motor input;
-  if(abs(derivative) < 3){
-    Turn = 0;  
-    integral = 0;  
-  }
-  Tp += Turn;
-  lastError = error;
-  if(Tp > 2200){
-    Tp = 2200;
-    Turn = 0;
-    integral -= 50;
-  }
-  else if(Tp < 850){
-    Tp = 850;
-    Turn = 0;
-    integral += 50;
-  }
-
-  Serial.println(Tp);
-  servo1.write(Tp);
-  */
-
-  int middle = findMiddleDerivative(3);
-  Serial.println(middle);
-  int angle = servoTurn(middle);
-  //Serial.println(angle);
-  servo1.write(angle);
-
-
-  //Motor Speeds
-  /*
-  if(angle > R_SHARP_ANGLE || L_SHARP_ANGLE > angle) 
-  {
-    //Set the duty cycle of the motor to low speed
-    int motorPower  = motorPWM(SLOW_SPEED);     //Currently 20% motor
-    analogWrite(MOTOR_PIN, motorPower);
-  }
-  
-  else if(angle > R_MED_SHARP_ANGLE || L_MED_SHARP_ANGLE > angle)
-  {
-    int motorPower = motorPWM(MED_SLOW_SPEED);
-    analogWrite(MOTOR_PIN, motorPower);
-  }
-  
-  else if(angle > R_MED_MED_SHARP_ANGLE || L_MED_MED_SHARP_ANGLE > angle)
-  {
-    int motorPower = motorPWM(MED_MED_SPEED);
-    analogWrite(MOTOR_PIN, motorPower);
-  }
-  
-  else if(angle > R_MED_SMOOTH_ANGLE || L_MED_SMOOTH_ANGLE > angle) 
-  {
-    //Set the duty cycle of the motor to medium speed
-    int motorPower  = motorPWM(MED_FAST_SPEED);     //Currently 30% motor
-    analogWrite(MOTOR_PIN, motorPower);
-  }
-  
-  else 
-  {
-    //Set the duty cycle of the motor
-    int motorPower  = motorPWM(MAX_SPEED);     //Currently 40% motor
-    analogWrite(MOTOR_PIN, motorPower);
-  }
-  */
-  digitalWrite(pinA, HIGH);
-  motorTester(20);
-  digitalWrite(pinA, HIGH);
-  motorTester(80);
+  if(BT.available()){
+    a = (BT.read());
+    if(a == '1'){
+      /* Scan 128 pixels */
+      intDelay=1+analogRead(INTVAL)*10;  //read integration time from potentiometer.
+      //Serial.print(">");                //Mark the start of a new frame
+      delay(2);                         // used with 115200 bauds
+      readPixel(0);                     //the first reading will be discarded.
+      delayMicroseconds(intDelay);
+      for(int i=0;i<PIXELS;i++){
+        inputPixel = readPixel(i);
+        pixels[i] = inputPixel;
+        delayMicroseconds(intDelay*2);    //Delay added to the integration period.
+      }
+      /*
+      maxIndex = findMax();
+      error = PIXELS/2 - maxIndex;
+      integral += error;
+      derivative = error - lastError;
+      Turn = Kp * error + Ki * integral + Kd * derivative;
+      //Turn = Turn/10;   // Scale turn val based on servo motor input;
+      if(abs(derivative) < 3){
+        Turn = 0;  
+        integral = 0;  
+      }
+      Tp += Turn;
+      lastError = error;
+      if(Tp > 2200){
+        Tp = 2200;
+        Turn = 0;
+        integral -= 50;
+      }
+      else if(Tp < 850){
+        Tp = 850;
+        Turn = 0;
+        integral += 50;
+      }
     
-  //delay(2);
-
+      Serial.println(Tp);
+      servo1.write(Tp);
+      */
+    
+    
+    
+      int middle = findMiddleDerivative(4);
+      Serial.println(middle);
+      int angle = servoTurn(middle);
+      //Serial.println(angle);
+      servo1.write(angle);
+    
+    
+      //Motor Speeds
+      digitalWrite(pinA, HIGH);
+      if(angle > R_SHARP_ANGLE || L_SHARP_ANGLE > angle) 
+      {
+        //Set the duty cycle of the motor to low speed
+        motorTester(SLOW_SPEED);
+      }
+      
+      else if(angle > R_MED_SHARP_ANGLE || L_MED_SHARP_ANGLE > angle)
+      {
+        motorTester(MED_SLOW_SPEED);
+      }
+      
+      else if(angle > R_MED_MED_SHARP_ANGLE || L_MED_MED_SHARP_ANGLE > angle)
+      {
+        motorTester(MED_MED_SPEED);
+      }
+      
+      else if(angle > R_MED_SMOOTH_ANGLE || L_MED_SMOOTH_ANGLE > angle) 
+      {
+        motorTester(MED_FAST_SPEED);
+      }
+      
+      else 
+      {
+        motorTester(MAX_SPEED);
+      }
+    
+      digitalWrite(pinA, LOW);
+      digitalWrite(MOTOR_PIN, HIGH);
+    //  delay(100);
+      }
+    }
+    else if(a=='0'){
+      delay(50000);
+    }
 }
-
-/*
- * Fix camera input below (Might not be reading in 128 per interval) Something about charge transfer.
- * Then check algorithm below.
- * When the car steers off road and can no longer see the tape, lock the wheels to turn back to where the tape
- * was last seen until it is found again.
- * Tape length is 1 inch, find out field of view of camera (1 foot?) and corresponding tape length in pixels.
- * 
- */
 
 
 //------------------ Send the intensity of the pixel serially -----------------
@@ -274,6 +276,11 @@ int findMiddleDerivative(int interval){
   int leftEdge;
   int rightEdge;
   int currSlope;
+  int threshold = findThreshold();
+
+  if(threshold < 0){
+    return 63;
+  }
 
   for(int i = 0; i < PIXELS-interval; i++) 
   {
@@ -364,8 +371,8 @@ int motorPWM(int value)
 }
 
 void motorTester(int dutyCycle){
-  int firstDelay = dutyCycle*20;
-  int secondDelay = 2000 - firstDelay;
+  int firstDelay = dutyCycle*5;
+  int secondDelay = 500 - firstDelay;
   digitalWrite(MOTOR_PIN, HIGH);
   delay(firstDelay);
   digitalWrite(MOTOR_PIN, LOW);
